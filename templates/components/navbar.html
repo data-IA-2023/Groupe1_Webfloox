@@ -31,7 +31,13 @@
     <form class="form-inline ms-auto" action={{ url_for('results') }} method="POST">
       <div class="input-group">
         <input name="search" class="form-control" style="height: 30px; margin-top: 0px;" type="search" placeholder="Search" aria-label="Search" id="tags">
-        <script> 
+        <script>
+          $.ui.autocomplete.filter = function (array, term) {
+            var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
+            return $.grep(array, function (value) {
+                return matcher.test(value.label || value.value || value);
+            });
+          };
           $( function() { 
             var availableTags = [ 
                 {% for x in autocomplete %} 
