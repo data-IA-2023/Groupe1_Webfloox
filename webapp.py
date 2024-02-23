@@ -68,12 +68,13 @@ async def index(response: Response):
     return RedirectResponse("/create_cookie")
 
 @app.get("/whoami") #simply a test route to check the fakesession cookie
-async def whoami(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
+async def whoami(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None), user_agent: Annotated[str | None, Header()] = None):
     if fakesession != None:logged="Logged in"
     else:logged="Logged off"
+    client=str(request.client)
     colors,autocomplete=reset_stgs()
     return templates.TemplateResponse(
-        request=request, name="whoami.html", context={"fakesession" : fakesession, "state" : logged, "autocomplete": autocomplete, "colors" : colors, "title" : "Webfloox"}
+        request=request, name="whoami.html", context={"fakesession" : fakesession, "state" : logged, "autocomplete": autocomplete, "colors" : colors, "title" : "Webfloox", "client" : client, "user_agent" : user_agent}
     )
 
 
