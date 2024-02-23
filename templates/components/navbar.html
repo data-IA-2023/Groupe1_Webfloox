@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg navbar-{{colors[-1]}} bg-{{colors[-1]}}">
+<nav class="navbar navbar-expand-lg navbar-{{colors[-1]}} bg-{{colors[-1]}} fixed-top" style="z-index: 5;">
   <a class="txtlogo navbar-brand" href={{ url_for('home') }} style="margin-right: 0px;">Webfloox</a>
   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" style="margin-right: 20px;">
     <span class="navbar-toggler-icon"></span>
@@ -28,7 +28,7 @@
         {% endif %}
       </li>
     </ul>
-    <form class="form-inline ms-auto" action={{ url_for('results') }} method="POST">
+    <form class="form-inline ms-auto w-50" action={{ url_for('results') }} method="POST">
       <div class="input-group">
         <input name="search" class="form-control" style="height: 30px; margin-top: 0px;" type="search" placeholder="Search" aria-label="Search" id="tags">
         <script>
