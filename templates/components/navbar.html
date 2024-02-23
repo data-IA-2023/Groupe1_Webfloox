@@ -40,7 +40,7 @@
           };
           $( function() { 
             var availableTags = [ 
-                {% for x in autocomplete %} 
+                {% for x in dictionary["autocomplete"] %} 
                     "{{x}}",
                 {% endfor %}
             ];
@@ -63,5 +63,10 @@
         }
       </script>
     </form>
+    {% if fakesession != None %}
+    <form method="POST">
+      <button type="submit" style="margin-right: 20px; background: none; border-style: none; color: var(--light);" name="switchmode" value="1">Switch mode</button>
+    </form>
+    {% endif %}
   </div>
 </nav>
