@@ -6,7 +6,7 @@ def reset_stgs():
     #colors = [(230, 230, 230),(210, 210, 210),(169, 77, 255),(206, 153, 255),(31, 34, 45),(20,20,20),"light"] #for lightmode
     file=open('resources/words.txt', 'r')
     autocomplete=file.read().splitlines()
-    print(autocomplete[:10])
+    #print(autocomplete[:10])
     return colors,autocomplete
 
 
