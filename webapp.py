@@ -21,6 +21,7 @@ temp_data={None : {"lightmode" : False}}
 
 
 def generic_render(request,fakesession,dictionary,name,title):
+    """handles the light/dark modes for you, uses a dictionary to pass information to the pages"""
     if fakesession != None:logged="Logged in"
     else:logged="Logged off"
     colors=reset_stgs(temp_data[fakesession]["lightmode"])[0]
