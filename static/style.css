@@ -295,7 +295,6 @@ textarea {
   user-select: none;
   color: var(--bright-accent-color);
   text-shadow: none;
-  padding-left: 15px;
   background-clip: text;
   -webkit-background-clip: text;
   -moz-background-clip: text;
