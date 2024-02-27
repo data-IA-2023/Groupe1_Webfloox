@@ -1,0 +1,77 @@
+<nav class="navbar navbar-expand-lg navbar-{{colors[-1]}} bg-{{colors[-1]}} fixed-top" style="z-index: 5;">
+  <a class="txtlogo navbar-brand" href={{ url_for('home') }} style="margin-right: 0px; padding-left: 15px;">Webfloox</a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" style="margin-right: 20px;">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent" style="padding-left: 20px;">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Pages
+        </a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+          <a class="dropdown-item" href={{ url_for('home') }}>Home</a>
+          <a class="dropdown-item" href={{ url_for('quiz') }}>Quiz</a>
+          <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href={{ url_for('whoami') }}>Who am I ?</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href={{ url_for('create_cookie') }}>Create cookie</a>
+      </li>
+      <li class="nav-item">
+        {% if state == "Logged off" %}
+        <a class="nav-link disabled" href="">Delete cookie</a>
+        {% else %}
+        <a class="nav-link" href={{ url_for('logout') }}>Delete cookie</a>
+        {% endif %}
+      </li>
+    </ul>
+    <form class="form-inline ms-auto w-50" action={{ url_for('results') }} method="POST">
+      <div class="input-group">
+        <input name="search" class="form-control" style="height: 30px; margin-top: 0px;" type="search" placeholder="Search" aria-label="Search" id="tags">
+        <script>
+          $.ui.autocomplete.filter = function (array, term) {
+            var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
+            return $.grep(array, function (value) {
+                return matcher.test(value.label || value.value || value);
+            });
+          };
+          $( function() { 
+            var availableTags = [ 
+                {% for x in dictionary["autocomplete"] %} 
+                    "{{x}}",
+                {% endfor %}
+            ];
+            $( "#tags" ).autocomplete({
+              source: function(request, response) {
+                var results = $.ui.autocomplete.filter(availableTags, request.term);
+                response(results.filter(str => str.length >= 3).slice(0, 15));
+              }
+            }); 
+          } );
+        </script>
+        <input type="button" id="fakesubmitsearch" class="btn-primary" style="height: 30px; padding-top: 0px; padding-bottom: 0px; margin-top: 0px; margin-right: 20px; padding-left: 15px; padding-right: 15px;" onclick="verify()" value="🔍">
+      </div>
+      <button type="submit" id="submitsearch" style="display: none;"></button>
+      <script>
+        function verify(){
+          if (document.getElementById('tags').value.length){
+            document.getElementById('submitsearch').click();
+          }
+        }
+      </script>
+    </form>
+    {% if fakesession != None %}
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="unselectable" style="margin-right: 20px; cursor: pointer; text-decoration: none;" onclick="document.getElementById('switchmode').click();">☀️🌙</a>
+      </li>
+    </ul>
+    <form method="POST">
+      <button type="submit" id="switchmode" style="display:none;" name="switchmode" value="1"></button>
+    </form>
+    {% endif %}
+  </div>
+</nav>
