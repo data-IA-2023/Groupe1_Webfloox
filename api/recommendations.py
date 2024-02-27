@@ -12,9 +12,7 @@ conn_string = f"host={hostname} dbname={db} user={username} password={password} 
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 
-# Building the recommendation model
-model_knn = NearestNeighbors(metric='cosine', algorithm='brute')
-model_knn.fit(combined_features_tfidf)
+
 
 def db_to_vectorized(cursor):
     cursor.execute(''' select tb.tconst, tb."primaryTitle", tb."titleType", tb.genres, 
@@ -78,7 +76,7 @@ def db_to_vectorized(cursor):
     # TF-IDF Vectorization for the combined textual features
     vectorizer = TfidfVectorizer(lowercase=True, stop_words='english')
     combined_features_tfidf = vectorizer.fit_transform(df['combined_features'])
-    return combined_features_tfidf
+    return combined_features_tfidf,df
 
 
 
@@ -200,6 +198,9 @@ def rec_mov(partial_movie_title, df, cosine_sim):
     return recommended_movies[['title', 'actor']]  # Adjust columns to those actually available
 
 
+# Building the recommendation model
+model_knn = NearestNeighbors(metric='cosine', algorithm='brute')
+model_knn.fit(combined_features_tfidf)
 
 movie_name1 = input("Enter the name of the movie: ")
 movie_name = suggest_movie_name_contains(movie_name1, df)
