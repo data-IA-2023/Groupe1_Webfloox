@@ -1,0 +1,33 @@
+<!-- templates/movies.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Box Office Movies</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        {% for movie in movies %}
+            <div class="col-md-3">
+                <div class="card" style="width: 18rem;">
+                    <img src="{{ movie.poster }}" class="card-img-top" alt="{{ movie.title }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ movie.title }}</h5>
+                        <p class="card-text">Box Office: {{ movie.box_office }}</p>
+                        <p class="card-text">Release Date: {{ movie.release_date }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+</body>
+</html>
