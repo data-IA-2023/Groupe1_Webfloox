@@ -18,6 +18,11 @@
   <p>User agent : {{dictionary["user_agent"]}}</p>
   {% if fakesession!=None %}
   <p>Search history (last on the left) : {{dictionary["search"][::-1]}}</p>
+  {% if state == "Logged in" %}
+  Liked movies : {{dictionary["liked"]}}
+  <br>
+  <br>
+  {% endif %}
   <a href={{ url_for('del_cookie') }} style="color: var(--bright-accent-color);">Delete cookie</a>
   {% endif %}
 </div>

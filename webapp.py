@@ -196,11 +196,14 @@ async def whoami(request: Request, response: Response, fakesession: Union[str, N
     client=str(request.client)
     autocomplete=reset_stgs(False)[1]
     user = None
+    liked = []
     if fakesession!=None :
         search=temp_data[fakesession]["search"]
-        if "user" in temp_data[fakesession].keys() : user=temp_data[fakesession]["user"]
-        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search,"user":user},"whoami.html","Webfloox - Who am I ?")
-    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client,"user":user},"whoami.html","Webfloox - Who am I ?")
+        if "user" in temp_data[fakesession].keys() :
+            user=temp_data[fakesession]["user"]
+            liked=temp_data[fakesession]["liked"]
+        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search,"user":user,"liked":liked},"whoami.html","Webfloox - Who am I ?")
+    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client,"user":user,"liked":liked},"whoami.html","Webfloox - Who am I ?")
 
 
 @app.post("/whoami") #simply a test route to check the fakesession cookie
@@ -210,11 +213,14 @@ async def whoami(request: Request, response: Response, switchmode: Annotated[str
     if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
     autocomplete=reset_stgs(False)[1]
     user = None
+    liked = []
     if fakesession!=None :
         search=temp_data[fakesession]["search"]
-        if "user" in temp_data[fakesession].keys() : user=temp_data[fakesession]["user"]
-        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search,"user":user},"whoami.html","Webfloox - Who am I ?")
-    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client,"user":user},"whoami.html","Webfloox - Who am I ?")
+        if "user" in temp_data[fakesession].keys() :
+            user=temp_data[fakesession]["user"]
+            liked=temp_data[fakesession]["liked"]
+        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search,"user":user,"liked":liked},"whoami.html","Webfloox - Who am I ?")
+    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client,"user":user,"liked":liked},"whoami.html","Webfloox - Who am I ?")
 
 
 @app.get("/login", response_class=HTMLResponse)
