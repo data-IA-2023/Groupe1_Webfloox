@@ -15,7 +15,7 @@
     {% if dictionary["liked"] == False %}
     <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">💜 I like this movie </button>
     {% else %}
-    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">🖤 I don't this movie anymore </button>
+    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">🖤 I don't like this movie anymore </button>
     {% endif %}
     <a href={{ url_for('like_function', movie=dictionary["movie_og"]) }} style="display: none;" id="like"></a>
   {% endif %}
