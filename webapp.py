@@ -258,11 +258,12 @@ async def movie(request: Request, response: Response, fakesession: Union[str, No
     movie=movie.replace("__", " ").replace("_slash_","/")
     poster=df[df["title"]==movie]["poster_url"].tolist()[0]
     over=df[df["title"]==movie]["overview"].tolist()[0]
+    date=df[df["title"]==movie]["release_date"].tolist()[0]
     liked=False
     if fakesession != None:
         if "user" in temp_data[fakesession]:liked = movie in temp_data[fakesession]["liked"]
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movie":movie,"poster":poster,"over":over,"liked":liked,"movie_og":movie_og},"movie.html",f"Webfloox - {movie}")
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movie":movie,"poster":poster,"over":over,"liked":liked,"movie_og":movie_og,"date":date},"movie.html",f"Webfloox - {movie}")
 
 @app.post("/movie/{movie}", response_class=HTMLResponse)
 async def movie(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None),movie:str="test"):
@@ -271,12 +272,13 @@ async def movie(request: Request, response: Response, switchmode: Annotated[str,
     movie=movie.replace("__", " ").replace("_slash_","/")
     poster=df[df["title"]==movie]["poster_url"].tolist()[0]
     over=df[df["title"]==movie]["overview"].tolist()[0]
+    date=df[df["title"]==movie]["release_date"].tolist()[0]
     if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
     liked=False
     if fakesession != None:
         if "user" in temp_data[fakesession]:liked = movie in temp_data[fakesession]["liked"]
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movie":movie,"poster":poster,"over":over,"liked":liked,"movie_og":movie_og},"movie.html",f"Webfloox - {movie}")
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movie":movie,"poster":poster,"over":over,"liked":liked,"movie_og":movie_og,"date":date},"movie.html",f"Webfloox - {movie}")
 
 @app.get("/like_function/{movie}", response_class=HTMLResponse)
 async def like_function(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None),movie:str="test"):

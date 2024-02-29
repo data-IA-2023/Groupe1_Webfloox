@@ -10,14 +10,17 @@
 <div class="container" style="margin-top: 100px;">
   <h1 class="text-center">{{dictionary["movie"]}}</h1>
   <a href=""><img src={{dictionary["poster"]}} alt="" class="image mx-auto d-block" style="height: 500px; width: auto;"></a>
+  {% if state == "Logged in" %}
   <p></p>
     {% if dictionary["liked"] == False %}
-    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">💜 I like this film </button>
+    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">💜 I like this movie </button>
     {% else %}
-    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">🖤 I don't this film anymore </button>
+    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">🖤 I don't this movie anymore </button>
     {% endif %}
     <a href={{ url_for('like_function', movie=dictionary["movie_og"]) }} style="display: none;" id="like"></a>
+  {% endif %}
   <p></p>
+  <p class="text-center">Release date : {{dictionary["date"]}}</p>
   <p class="text-center">{{dictionary["over"]}}</p>
 </div>
 </body>
