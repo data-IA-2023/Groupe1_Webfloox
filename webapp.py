@@ -117,14 +117,16 @@ async def create_cookie(response: Response):
     return response
 
 @app.get("/logout")
-async def logout(response: Response):
+async def logout(response: Response, fakesession: Union[str, None] = Cookie(default=None)):
     response=RedirectResponse(url="/create_cookie")
+    del temp_data[fakesession]
     response.delete_cookie(key="fakesession", httponly=True)
     return response
 
 @app.get("/del_cookie")
-async def del_cookie(response: Response):
+async def del_cookie(response: Response, fakesession: Union[str, None] = Cookie(default=None)):
     response=RedirectResponse(url="/home")
+    del temp_data[fakesession]
     response.delete_cookie(key="fakesession", httponly=True)
     return response
 
