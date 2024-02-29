@@ -1,0 +1,10 @@
+<link rel="stylesheet" href={{ url_for('static', path='components/carousel.css') }}>
+<script src={{ url_for('static', path='components/carousel.js') }} ></script>
+<script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js" integrity="sha384-3LK/3kTpDE/Pkp8gTNp2gR/2gOiwQ6QaO7Td0zV76UFJVhqLl4Vl3KL1We6q6wR9" crossorigin="anonymous"></script>
+
+
+<div class="box">
+    {% for i in range(18)%}
+    <a href={{ url_for('movie', movie=dictionary["movies"]["titles"][i]) }}><img src={{dictionary["movies"]["poster"][i]}} alt="" style="border-radius: 10px;"></a>
+    {% endfor %}
+</div>

@@ -1,12 +1,77 @@
 from imports import *
+sys.path.append('api')
+from fetch_movies import *
+
+load_dotenv()
+
+username=os.getenv("USERNAME")
+password=os.getenv("PASSWORD")
+hostname=os.getenv("HOSTNAME")
+port=os.getenv("PORT")
+db=os.getenv("DB")
+api_key=os.getenv("API_KEY")
+print(db)
+
+movies_path="resources/movies.csv"
+if not os.path.isfile(movies_path):
+    df=fetch_current_month_movies_to_df_with_posters(api_key)
+    df.to_csv(movies_path, sep='\t')
+    print("downloaded tmdb information")
+else:
+    df = pd.read_csv(movies_path, sep='\t', lineterminator='\n').drop_duplicates(subset=["title"]).dropna()
+
+
+
+user_list={}
+
+temp_data={None : {"lightmode" : False}}
+
+def load_userbase():
+    global user_list
+    pass
+
+
+print(df.columns)
+
+def get_hash(algorithm, data):
+   """Generate a hash for given data using specified algorithm"""
+   hash_obj = hashlib.new(algorithm)
+   hash_obj.update(data.encode())
+   return hash_obj.hexdigest()
+
+def search_string(s, search):
+    return search in str(s).lower()
+
+def chckpwd(user,pwd):
+    if user in user_list.keys():
+        if get_hash("sha256", pwd)==user_list[user] : return True
+    return False
+
+def create_login(user,pwd):
+    global user_list
+    if not user in user_list.keys():
+        hashed_pwd=get_hash("sha256", pwd)
+        user_list[user]=hashed_pwd
+        return True
+    return False
+
+def upload_settings():
+    global temp_data
+    pass
 
 def reset_stgs(lightmode):
     """used to specify the default settings used for the first connection"""
+    global df
     if lightmode : colors = [(230, 230, 230),(180, 180, 180),(169, 77, 255),(206, 153, 255),(31, 34, 45),(20,20,20),"light"] #for lightmode
     else : colors = [(44, 46, 63),(74, 77, 105),(99, 0, 192),(124, 0, 240),(31, 34, 45),(255,255,255),"dark"]
     file=open('resources/words.txt', 'r')
-    autocomplete=file.read().splitlines()
+    autocomplete=df["title"].tolist()
+    print("test", len(autocomplete))
+    upload_settings()
     return colors,autocomplete
+
+
+
 
 
 #FastAPI and sass parameters
@@ -14,16 +79,20 @@ app = FastAPI()
 sass.compile(dirname=('asset', 'static'))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+from custom_url_processor import *
+templates.env.globals['CustomURLProcessor'] = CustomURLProcessor
 
 
 
-temp_data={None : {"lightmode" : False}}
+
 
 
 def generic_render(request,fakesession,dictionary,name,title):
     """handles the light/dark modes for you, uses a dictionary to pass information to the pages"""
-    if fakesession != None:logged="Logged in"
-    else:logged="Logged off"
+    global temp_data
+    if "user" in temp_data[fakesession].keys():
+        logged="Logged in"
+    else : logged="Logged off"
     colors=reset_stgs(temp_data[fakesession]["lightmode"])[0]
     return templates.TemplateResponse(
         request=request, name=name, context={"fakesession" : fakesession ,"state" : logged, "dictionary": dictionary, "colors" : colors, "title" : title}
@@ -42,12 +111,19 @@ async def create_cookie(response: Response):
     temp_data[uuid]={}
     temp_data[uuid]["lightmode"]=False
     temp_data[uuid]["search"]=[]
+    temp_data[uuid]["liked"]=[]
     response=RedirectResponse(url="/home")
     response.set_cookie(key="fakesession", value=uuid, httponly=True)
     return response
 
 @app.get("/logout")
 async def logout(response: Response):
+    response=RedirectResponse(url="/create_cookie")
+    response.delete_cookie(key="fakesession", httponly=True)
+    return response
+
+@app.get("/del_cookie")
+async def del_cookie(response: Response):
     response=RedirectResponse(url="/home")
     response.delete_cookie(key="fakesession", httponly=True)
     return response
@@ -69,16 +145,18 @@ async def index(response: Response):
 
 @app.get("/home", response_class=HTMLResponse)
 async def home(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
-    global temp_data
+    global temp_data, df
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete},"index.html","Webfloox")
+    movies={"titles":[e.replace(" ", "__") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies},"index.html","Webfloox")
 
 @app.post("/home", response_class=HTMLResponse)
 async def home(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
-    global temp_data
+    global temp_data, df
     if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete},"index.html","Webfloox")
+    movies={"titles":[e.replace(" ", "__") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies},"index.html","Webfloox")
 
 
 
@@ -94,8 +172,11 @@ async def results(request: Request, search: Annotated[str, Form()] = "", switchm
         if search == "" : search=temp_data[fakesession]["search"][-1]
         else : temp_data[fakesession]["search"].append(search)
     if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+    mask = df[["title","overview"]].apply(lambda x: x.map(lambda s: search_string(s, search)))
+    df0=df.loc[mask.any(axis=1)]
+    movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df0["title"].tolist()],"poster":df0["poster_url"].tolist(),"over":df0["overview"].tolist(),"date":df0["release_date"].tolist()}
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete,"search":search},"results.html","Results for " + search)
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"search":search,"movies":movies,"length":len(movies["titles"])},"results.html","Results for " + search)
 
 @app.get("/results")
 async def results(response: Response):
@@ -112,10 +193,12 @@ async def whoami(request: Request, response: Response, fakesession: Union[str, N
     global temp_data
     client=str(request.client)
     autocomplete=reset_stgs(False)[1]
+    user = None
     if fakesession!=None :
         search=temp_data[fakesession]["search"]
-        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search},"whoami.html","Webfloox - Who am I ?")
-    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client},"whoami.html","Webfloox - Who am I ?")
+        if "user" in temp_data[fakesession].keys() : user=temp_data[fakesession]["user"]
+        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search,"user":user},"whoami.html","Webfloox - Who am I ?")
+    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client,"user":user},"whoami.html","Webfloox - Who am I ?")
 
 
 @app.post("/whoami") #simply a test route to check the fakesession cookie
@@ -124,34 +207,87 @@ async def whoami(request: Request, response: Response, switchmode: Annotated[str
     client=str(request.client)
     if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
     autocomplete=reset_stgs(False)[1]
+    user = None
     if fakesession!=None :
         search=temp_data[fakesession]["search"]
-        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search},"whoami.html","Webfloox - Who am I ?")
-    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client},"whoami.html","Webfloox - Who am I ?")
+        if "user" in temp_data[fakesession].keys() : user=temp_data[fakesession]["user"]
+        return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client, "search":search,"user":user},"whoami.html","Webfloox - Who am I ?")
+    else : return generic_render(request,fakesession,{"autocomplete":autocomplete,"user_agent":user_agent,"client":client,"user":user},"whoami.html","Webfloox - Who am I ?")
 
 
+@app.get("/login", response_class=HTMLResponse)
+async def login(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
+    return generic_render(request,fakesession,{"wrong":False},"login.html","Webfloox - Login")
 
-
-
-
-
-
-
-@app.get("/quiz", response_class=HTMLResponse)
-async def quiz(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
+@app.post("/login", response_class=HTMLResponse)
+async def login(request: Request, response: Response, user: Annotated[str, Form()], pwd: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
     global temp_data
+    testlogin=chckpwd(user,pwd)
+    if testlogin :
+        temp_data[fakesession]["user"]=user
+        return RedirectResponse(url="/home", status_code=status.HTTP_303_SEE_OTHER)
+    else : return generic_render(request,fakesession,{"wrong":True},"login.html","Webfloox - Login")
+
+
+
+@app.get("/signup", response_class=HTMLResponse)
+async def signup(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
+    return generic_render(request,fakesession,{"wrong":False},"signup.html","Webfloox - Login")
+
+@app.post("/signup", response_class=HTMLResponse)
+async def signup(request: Request, response: Response, user: Annotated[str, Form()],pwd: Annotated[str, Form()], pwd2: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
+    global temp_data
+    test=create_login(user,pwd)
+    if test :
+        temp_data[fakesession]["user"]=user
+        return RedirectResponse(url="/home", status_code=status.HTTP_303_SEE_OTHER)
+    else : return generic_render(request,fakesession,{"wrong":True},"signup.html","Webfloox - Login")
+
+
+
+
+
+
+
+@app.get("/movie/{movie}", response_class=HTMLResponse)
+async def movie(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None),movie:str="test"):
+    global temp_data,df
+    movie_og=''.join([s for s in movie])
+    movie=movie.replace("__", " ").replace("_slash_","/")
+    poster=df[df["title"]==movie]["poster_url"].tolist()[0]
+    over=df[df["title"]==movie]["overview"].tolist()[0]
+    liked=False
+    if fakesession != None:
+        if "user" in temp_data[fakesession]:liked = movie in temp_data[fakesession]["liked"]
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete},"quiz.html","Webfloox - Quiz")
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movie":movie,"poster":poster,"over":over,"liked":liked,"movie_og":movie_og},"movie.html",f"Webfloox - {movie}")
 
-
-
-@app.post("/quiz", response_class=HTMLResponse)
-async def quiz(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
-    global temp_data
+@app.post("/movie/{movie}", response_class=HTMLResponse)
+async def movie(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None),movie:str="test"):
+    global temp_data,df
+    movie_og=''.join([s for s in movie])
+    movie=movie.replace("__", " ").replace("_slash_","/")
+    poster=df[df["title"]==movie]["poster_url"].tolist()[0]
+    over=df[df["title"]==movie]["overview"].tolist()[0]
     if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+    liked=False
+    if fakesession != None:
+        if "user" in temp_data[fakesession]:liked = movie in temp_data[fakesession]["liked"]
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete},"quiz.html","Webfloox - Quiz")
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movie":movie,"poster":poster,"over":over,"liked":liked,"movie_og":movie_og},"movie.html",f"Webfloox - {movie}")
 
+@app.get("/like_function/{movie}", response_class=HTMLResponse)
+async def like_function(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None),movie:str="test"):
+    global temp_data,df
+    print(movie)
+    movie_copy=''.join([s for s in movie]).replace("__", " ").replace("_slash_","/")
+    liked=False
+    if fakesession != None:
+        if "user" in temp_data[fakesession]:
+            if movie_copy in temp_data[fakesession]["liked"]:
+                temp_data[fakesession]["liked"].remove(movie_copy)
+            else : temp_data[fakesession]["liked"].append(movie_copy)
+    return RedirectResponse(url=f"/movie/{movie}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 

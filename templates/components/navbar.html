@@ -12,19 +12,19 @@
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
           <a class="dropdown-item" href={{ url_for('home') }}>Home</a>
-          <a class="dropdown-item" href={{ url_for('quiz') }}>Quiz</a>
+          
           <div class="dropdown-divider"></div>
             <a class="dropdown-item" href={{ url_for('whoami') }}>Who am I ?</a>
         </div>
       </li>
+
       <li class="nav-item">
-        <a class="nav-link" href={{ url_for('create_cookie') }}>Create cookie</a>
-      </li>
-      <li class="nav-item">
-        {% if state == "Logged off" %}
-        <a class="nav-link disabled" href="">Delete cookie</a>
+        {% if state == "Logged off" and fakesession!=None %}
+        <a class="nav-link" href={{ url_for('login') }}>Log in</a>
+        {% elif fakesession!=None %}
+        <a class="nav-link" href={{ url_for('logout') }}>Log out</a>
         {% else %}
-        <a class="nav-link" href={{ url_for('logout') }}>Delete cookie</a>
+        <a class="nav-link" href={{ url_for('create_cookie') }}>Get cookie</a>
         {% endif %}
       </li>
     </ul>
@@ -41,7 +41,7 @@
           $( function() { 
             var availableTags = [ 
                 {% for x in dictionary["autocomplete"] %} 
-                    "{{x}}",
+                    "{{x.lower()}}",
                 {% endfor %}
             ];
             $( "#tags" ).autocomplete({

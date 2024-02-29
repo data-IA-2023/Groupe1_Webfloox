@@ -5,3 +5,9 @@ uvicorn
 python-multipart
 jinja2
 pandas
+seaborn
+psycopg2-binary
+fuzzywuzzy
+scikit-learn
+requests
+python-dotenv

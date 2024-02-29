@@ -8,10 +8,30 @@
 {% include "components/navbar.html" %}
 
 <div class="container" style="margin-top: 100px;">
-  <label>{{title}} :</label>
-  <div class="row gx-3 form-control" style="margin-top: 5px;">
-    Nothing found for {{dictionary["search"]}} !
+  {% if dictionary["length"] != 0 %}
+  <h1>{{title}}</h1>
+  {% for i in range(dictionary["length"])%}
+  <div class="row" style="margin-top: 5px;">
+    
+    <div class="col">
+      
+      <a href={{ url_for('movie', movie=dictionary["movies"]["titles"][i]) }}><img src={{dictionary["movies"]["poster"][i]}} alt="" style="border-radius: 10px; height:200px; width: auto; margin-bottom: 20px;"></a>
+      
+    </div>
+
+    <div class="col-10">
+      
+      <a href={{ url_for('movie', movie=dictionary["movies"]["titles"][i]) }} style="color:var(--bright-accent-color); font-size: 20px;">{{dictionary["movies"]["titles"][i].replace("__"," ").replace("_slash_","/")}}</a>
+      <p>Release date : {{dictionary["movies"]["date"][i]}}</p>
+      <p>{{dictionary["movies"]["over"][i]}}</p>
+      
+    </div>
+    
   </div>
+  {% endfor %}
+  {% else %}
+  <h1>No results for {{dictionary["search"]}}</h1>
+  {% endif %}
 </div>
 </body>
 
