@@ -174,7 +174,8 @@ async def favourites(request: Request, response: Response, fakesession: Union[st
     if fakesession!=None :
         if "user" in temp_data[fakesession].keys() :
             liked=temp_data[fakesession]["liked"]
-            movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in liked],"poster":df[df["title"].isin(liked)]["poster_url"].tolist()}
+            titles=[e.replace(" ", "__").replace("/","_slash_") for e in liked]
+            movies={"titles":titles,"poster":[df[df["title"]==e]["poster_url"].tolist()[0] for e in liked]}
             return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":len(liked),"h_text":"Your favourites :"},"index.html","Webfloox - favourites")
     return RedirectResponse(url="/home")
 
@@ -186,7 +187,8 @@ async def favourites(request: Request, response: Response, switchmode: Annotated
     if fakesession!=None :
         if "user" in temp_data[fakesession].keys() :
             liked=temp_data[fakesession]["liked"]
-            movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in liked],"poster":df[df["title"].isin(liked)]["poster_url"].tolist()}
+            titles=[e.replace(" ", "__").replace("/","_slash_") for e in liked]
+            movies={"titles":titles,"poster":[df[df["title"]==e]["poster_url"].tolist()[0] for e in liked]}
             return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":len(liked),"h_text":"Your favourites :"},"index.html","Webfloox - favourites")
     return RedirectResponse(url="/home")
 
