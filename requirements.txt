@@ -11,3 +11,4 @@ fuzzywuzzy
 scikit-learn
 requests
 python-dotenv
+sqlalchemy

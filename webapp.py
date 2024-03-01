@@ -1,6 +1,7 @@
 from imports import *
 sys.path.append('api')
 from fetch_movies import *
+from user_api import *
 
 load_dotenv()
 
@@ -11,6 +12,8 @@ port=os.getenv("PORT")
 db=os.getenv("DB")
 api_key=os.getenv("API_KEY")
 print(db)
+
+cursor,conn=create_conn(hostname,db,username,password,port)
 
 movies_path="resources/movies.csv"
 if not os.path.isfile(movies_path):
@@ -24,12 +27,8 @@ else:
 
 user_list={}
 
+
 temp_data={None : {"lightmode" : False}}
-
-def load_userbase():
-    global user_list
-    pass
-
 
 print(df.columns)
 
@@ -42,9 +41,18 @@ def get_hash(algorithm, data):
 def search_string(s, search):
     return search in str(s).lower()
 
-def chckpwd(user,pwd):
-    if user in user_list.keys():
-        if get_hash("sha256", pwd)==user_list[user] : return True
+def chckpwd(user,pwd,fakesession):
+    global temp_data,cursor,conn,user_list
+    info=super_function(cursor,conn)
+    user_list=info[0]
+    if user in user_list.keys() and not user in [temp_data[e]["user"] if "user" in temp_data[e].keys() else None for e in temp_data.keys()]:
+        if get_hash("sha256", pwd)==user_list[user] :
+            temp_data[fakesession]={}
+            temp_data[fakesession]["user"]=user
+            temp_data[fakesession]["search"]=info[3][user]
+            temp_data[fakesession]["liked"]=info[1][user]
+            temp_data[fakesession]["lightmode"]=info[2][user]
+            return True
     return False
 
 def create_login(user,pwd):
@@ -66,7 +74,6 @@ def reset_stgs(lightmode):
     else : colors = [(44, 46, 63),(74, 77, 105),(99, 0, 192),(124, 0, 240),(31, 34, 45),(255,255,255),"dark"]
     file=open('resources/words.txt', 'r')
     autocomplete=df["title"].tolist()
-    print("test", len(autocomplete))
     upload_settings()
     return colors,autocomplete
 
@@ -149,16 +156,44 @@ async def index(response: Response):
 async def home(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
     global temp_data, df
     autocomplete=reset_stgs(False)[1]
-    movies={"titles":[e.replace(" ", "__") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
-    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies},"index.html","Webfloox")
+    movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":30,"h_text":"Just for you :"},"index.html","Webfloox")
 
 @app.post("/home", response_class=HTMLResponse)
 async def home(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
     global temp_data, df
     if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
     autocomplete=reset_stgs(False)[1]
-    movies={"titles":[e.replace(" ", "__") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
-    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies},"index.html","Webfloox")
+    movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":30,"h_text":"Just for you :"},"index.html","Webfloox")
+
+@app.get("/favourites", response_class=HTMLResponse)
+async def favourites(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
+    global temp_data, df
+    autocomplete=reset_stgs(False)[1]
+    if fakesession!=None :
+        if "user" in temp_data[fakesession].keys() :
+            liked=temp_data[fakesession]["liked"]
+            movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in liked],"poster":df[df["title"].isin(liked)]["poster_url"].tolist()}
+            return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":len(liked),"h_text":"Your favourites :"},"index.html","Webfloox - favourites")
+    return RedirectResponse(url="/home")
+
+@app.post("/favourites", response_class=HTMLResponse)
+async def favourites(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
+    global temp_data, df
+    if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+    autocomplete=reset_stgs(False)[1]
+    if fakesession!=None :
+        if "user" in temp_data[fakesession].keys() :
+            liked=temp_data[fakesession]["liked"]
+            movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in liked],"poster":df[df["title"].isin(liked)]["poster_url"].tolist()}
+            return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":len(liked),"h_text":"Your favourites :"},"index.html","Webfloox - favourites")
+    return RedirectResponse(url="/home")
+
+
+
+
+
 
 
 
@@ -178,7 +213,7 @@ async def results(request: Request, search: Annotated[str, Form()] = "", switchm
     df0=df.loc[mask.any(axis=1)]
     movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df0["title"].tolist()],"poster":df0["poster_url"].tolist(),"over":df0["overview"].tolist(),"date":df0["release_date"].tolist()}
     autocomplete=reset_stgs(False)[1]
-    return generic_render(request,fakesession,{"autocomplete":autocomplete,"search":search,"movies":movies,"length":len(movies["titles"])},"results.html","Results for " + search)
+    return generic_render(request,fakesession,{"autocomplete":autocomplete,"search":search,"movies":movies,"length":min(len(movies["titles"]),200)},"results.html","Results for " + search)
 
 @app.get("/results")
 async def results(response: Response):
@@ -225,22 +260,22 @@ async def whoami(request: Request, response: Response, switchmode: Annotated[str
 
 @app.get("/login", response_class=HTMLResponse)
 async def login(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
-    return generic_render(request,fakesession,{"wrong":False},"login.html","Webfloox - Login")
+    return generic_render(request,fakesession,{"wrong":False},"login.html","Webfloox - Log in")
 
 @app.post("/login", response_class=HTMLResponse)
 async def login(request: Request, response: Response, user: Annotated[str, Form()], pwd: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
     global temp_data
-    testlogin=chckpwd(user,pwd)
+    testlogin=chckpwd(user,pwd,fakesession)
     if testlogin :
         temp_data[fakesession]["user"]=user
         return RedirectResponse(url="/home", status_code=status.HTTP_303_SEE_OTHER)
-    else : return generic_render(request,fakesession,{"wrong":True},"login.html","Webfloox - Login")
+    else : return generic_render(request,fakesession,{"wrong":True},"login.html","Webfloox - Log in")
 
 
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
-    return generic_render(request,fakesession,{"wrong":False},"signup.html","Webfloox - Login")
+    return generic_render(request,fakesession,{"wrong":False},"signup.html","Webfloox - Sign up")
 
 @app.post("/signup", response_class=HTMLResponse)
 async def signup(request: Request, response: Response, user: Annotated[str, Form()],pwd: Annotated[str, Form()], pwd2: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
@@ -249,7 +284,7 @@ async def signup(request: Request, response: Response, user: Annotated[str, Form
     if test :
         temp_data[fakesession]["user"]=user
         return RedirectResponse(url="/home", status_code=status.HTTP_303_SEE_OTHER)
-    else : return generic_render(request,fakesession,{"wrong":True},"signup.html","Webfloox - Login")
+    else : return generic_render(request,fakesession,{"wrong":True},"signup.html","Webfloox - Sign up")
 
 
 
@@ -289,14 +324,14 @@ async def movie(request: Request, response: Response, switchmode: Annotated[str,
 @app.get("/like_function/{movie}", response_class=HTMLResponse)
 async def like_function(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None),movie:str="test"):
     global temp_data,df
-    print(movie)
     movie_copy=''.join([s for s in movie]).replace("__", " ").replace("_slash_","/")
     liked=False
     if fakesession != None:
         if "user" in temp_data[fakesession]:
             if movie_copy in temp_data[fakesession]["liked"]:
                 temp_data[fakesession]["liked"].remove(movie_copy)
-            else : temp_data[fakesession]["liked"].append(movie_copy)
+            else :
+                temp_data[fakesession]["liked"].append(movie_copy)
     return RedirectResponse(url=f"/movie/{movie}", status_code=status.HTTP_303_SEE_OTHER)
 
 

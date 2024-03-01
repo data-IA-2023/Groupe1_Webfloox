@@ -4,7 +4,10 @@
 
 
 <div class="box">
-    {% for i in range(18)%}
+    {% if dictionary["amout"]==0 %}
+    <p>Nothing to see here...</p>
+    {% endif %}
+    {% for i in range(dictionary["amout"])%}
     <a href={{ url_for('movie', movie=dictionary["movies"]["titles"][i]) }}><img src={{dictionary["movies"]["poster"][i]}} alt="" style="border-radius: 10px;"></a>
     {% endfor %}
 </div>
