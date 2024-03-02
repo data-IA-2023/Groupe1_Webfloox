@@ -43,29 +43,85 @@ def search_string(s, search):
 
 def chckpwd(user,pwd,fakesession):
     global temp_data,cursor,conn,user_list
-    info=super_function(cursor,conn)
+    try : info=super_function(cursor)
+    except :
+        cursor,conn=create_conn(hostname,db,username,password,port)
+        info=super_function(cursor)
     user_list=info[0]
     if user in user_list.keys() and not user in [temp_data[e]["user"] if "user" in temp_data[e].keys() else None for e in temp_data.keys()]:
         if get_hash("sha256", pwd)==user_list[user] :
             temp_data[fakesession]={}
             temp_data[fakesession]["user"]=user
-            temp_data[fakesession]["search"]=info[3][user]
-            temp_data[fakesession]["liked"]=info[1][user]
+            try : temp_data[fakesession]["search"]=info[3][user]
+            except : temp_data[fakesession]["search"]=[]
+            try : temp_data[fakesession]["liked"]=info[1][user]
+            except : temp_data[fakesession]["liked"]=[]
             temp_data[fakesession]["lightmode"]=info[2][user]
             return True
     return False
 
+def change_user_lightmode(fakesession):
+    global cursor,conn,temp_data
+    temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+    if "user" in temp_data[fakesession].keys() :
+        user=temp_data[fakesession]["user"]
+        try :
+            change_lightmode(cursor,user,temp_data[fakesession]["lightmode"])
+            conn.commit()
+        except :
+            cursor,conn=create_conn(hostname,db,username,password,port)
+            change_lightmode(cursor,user,temp_data[fakesession]["lightmode"])
+            conn.commit()
+
+
 def create_login(user,pwd):
-    global user_list
+    global user_list,cursor,conn
+    try : info=fetch_users(cursor)
+    except :
+        cursor,conn=create_conn(hostname,db,username,password,port)
+        info=fetch_users(cursor)
+
+    d={}
+    for e in info:
+        d[e[0]]=e[1]
+    
+    user_list=d
     if not user in user_list.keys():
         hashed_pwd=get_hash("sha256", pwd)
         user_list[user]=hashed_pwd
+        create_user(cursor,user,hashed_pwd)
+        conn.commit()
         return True
     return False
 
-def upload_settings():
-    global temp_data
-    pass
+def update_liked_movies(fakesession,movie):
+    global temp_data,conn,cursor
+    isliked = movie in temp_data[fakesession]["liked"]
+    user=temp_data[fakesession]["user"]
+    if isliked :
+        temp_data[fakesession]["liked"].remove(movie)
+    else :
+        temp_data[fakesession]["liked"].append(movie)
+    try :
+        write_favourite(cursor,user,movie,isliked)
+        conn.commit()
+    except :
+        cursor,conn=create_conn(hostname,db,username,password,port)
+        write_favourite(cursor,user,movie,isliked)
+        conn.commit()
+
+
+def update_history(fakesession,movie):
+    global temp_data,conn,cursor
+    user=temp_data[fakesession]["user"]
+    try :
+        write_history(cursor,user,movie)
+        conn.commit()
+    except :
+        cursor,conn=create_conn(hostname,db,username,password,port)
+        write_history(cursor,user,movie)
+        conn.commit()
+
 
 def reset_stgs(lightmode):
     """used to specify the default settings used for the first connection"""
@@ -74,7 +130,6 @@ def reset_stgs(lightmode):
     else : colors = [(44, 46, 63),(74, 77, 105),(99, 0, 192),(124, 0, 240),(31, 34, 45),(255,255,255),"dark"]
     file=open('resources/words.txt', 'r')
     autocomplete=df["title"].tolist()
-    upload_settings()
     return colors,autocomplete
 
 
@@ -162,7 +217,7 @@ async def home(request: Request, response: Response, fakesession: Union[str, Non
 @app.post("/home", response_class=HTMLResponse)
 async def home(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
     global temp_data, df
-    if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+    if switchmode == "1" and fakesession!=None : change_user_lightmode(fakesession)
     autocomplete=reset_stgs(False)[1]
     movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
     return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":30,"h_text":"Just for you :"},"index.html","Webfloox")
@@ -182,7 +237,7 @@ async def favourites(request: Request, response: Response, fakesession: Union[st
 @app.post("/favourites", response_class=HTMLResponse)
 async def favourites(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None)):
     global temp_data, df
-    if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+    if switchmode == "1" and fakesession!=None : change_user_lightmode(fakesession)
     autocomplete=reset_stgs(False)[1]
     if fakesession!=None :
         if "user" in temp_data[fakesession].keys() :
@@ -210,7 +265,8 @@ async def results(request: Request, search: Annotated[str, Form()] = "", switchm
     if fakesession!=None :
         if search == "" : search=temp_data[fakesession]["search"][-1]
         else : temp_data[fakesession]["search"].append(search)
-    if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+        if "user" in temp_data[fakesession].keys() : update_history(fakesession,search)
+    if switchmode == "1" and fakesession!=None : change_user_lightmode(fakesession)
     mask = df[["title","overview"]].apply(lambda x: x.map(lambda s: search_string(s, search)))
     df0=df.loc[mask.any(axis=1)]
     movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df0["title"].tolist()],"poster":df0["poster_url"].tolist(),"over":df0["overview"].tolist(),"date":df0["release_date"].tolist()}
@@ -247,7 +303,7 @@ async def whoami(request: Request, response: Response, fakesession: Union[str, N
 async def whoami(request: Request, response: Response, switchmode: Annotated[str, Form()], fakesession: Union[str, None] = Cookie(default=None), user_agent: Annotated[str | None, Header()] = None):
     global temp_data
     client=str(request.client)
-    if switchmode == "1" and fakesession!=None : temp_data[fakesession]["lightmode"]=1-temp_data[fakesession]["lightmode"]
+    if switchmode == "1" and fakesession!=None : change_user_lightmode(fakesession)
     autocomplete=reset_stgs(False)[1]
     user = None
     liked = []
@@ -330,10 +386,8 @@ async def like_function(request: Request, response: Response, fakesession: Union
     liked=False
     if fakesession != None:
         if "user" in temp_data[fakesession]:
-            if movie_copy in temp_data[fakesession]["liked"]:
-                temp_data[fakesession]["liked"].remove(movie_copy)
-            else :
-                temp_data[fakesession]["liked"].append(movie_copy)
+            update_liked_movies(fakesession,movie_copy)
+
     return RedirectResponse(url=f"/movie/{movie}", status_code=status.HTTP_303_SEE_OTHER)
 
 
