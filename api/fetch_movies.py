@@ -14,7 +14,7 @@ def fetch_current_month_movies_to_df_with_posters(api_key):
     
     #discover_url = f"{base_url}/discover/movie?api_key={api_key}&primary_release_date.gte={start_date}&primary_release_date.lte={end_date}"
     movies=[]
-    for i in range(1,401):
+    for i in range(1,501):
         discover_url = f"{base_url}/discover/movie?api_key={api_key}&include_adult=false&include_video=false&language=en-US&page={i}&sort_by=popularity.desc"
         response = requests.get(discover_url)
         if response.status_code != 200:
