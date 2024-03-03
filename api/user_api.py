@@ -131,13 +131,15 @@ def create_df(cursor):
 
 
 
-def get_cosine_sim_recommendations(df, movies, num_recom):
-    """
-    df['averageRating'] = df['averageRating'].astype(str)
-    df['startYear'] = df['startYear'].astype(str)
-    df['numVotes'] = df['numVotes'].astype(str)
-    df['combined_features'] = df['primaryTitle']+ ' ' + df['directors'] + ' ' + df['actors']  + ' ' + df['startYear'] + ' ' + df['numVotes'] + ' ' + df['averageRating']"""
-    df['combined_features'] = df['title'] + ' ' + df['release_date'] + ' ' + df['overview']
+def get_cosine_sim_recommendations(df, movies, num_recom, df2):
+    df2['averageRating'] = df2['averageRating'].astype(str)
+    df2['startYear'] = df2['startYear'].astype(str)
+    df2['numVotes'] = df2['numVotes'].astype(str)
+    df = df.merge(df2, left_on='title', right_on='primaryTitle', how='left')
+    df.fillna("",inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    df['combined_features'] = df['title'] + ' ' + df['release_date'] + ' ' + df['overview'] + ' ' + df['directors'] + ' ' + df['actors']  + ' ' + df['startYear'] + ' ' + df['numVotes'] + ' ' + df['averageRating']
+    
     vectorizer = TfidfVectorizer(lowercase=True, analyzer='word',strip_accents='unicode',stop_words='english')
     combined_features_vec = vectorizer.fit_transform(df['combined_features'])
     movie_to_index = pd.Series(data=df.index, index=df['title']).to_dict()

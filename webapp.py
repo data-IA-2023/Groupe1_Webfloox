@@ -22,17 +22,14 @@ if not os.path.isfile(movies_path):
 else:
     df = pd.read_csv(movies_path, sep='\t', lineterminator='\n').drop_duplicates(subset=["title"]).dropna().reset_index(drop=True, inplace=False)
 
-"""
-
-if not os.path.isfile("resources/movies2.csv"):
-    df2=create_df(cursor)
-    df2=df2[df2["primaryTitle"].isin(df["title"])].reset_index(drop=True, inplace=True)
-    df2.to_csv("resources/movies2.csv", sep='\t')
+movies_path2="resources/movies2.csv"
+if not os.path.isfile(movies_path2):
+    df2=create_df(cursor).reset_index(drop=True, inplace=False)
+    df2.to_csv(movies_path2, sep='\t')
 else:
-    df2 = pd.read_csv("resources/movies2.csv", sep='\t', lineterminator='\n').drop_duplicates().dropna()
-    df2=df2[df2["primaryTitle"].isin(df["title"])].reset_index(drop=True, inplace=True)
+    df2 = pd.read_csv(movies_path2, sep='\t', lineterminator='\n').drop_duplicates().dropna().reset_index(drop=True, inplace=False)
 
-"""
+
 user_list={}
 
 
@@ -49,7 +46,7 @@ def search_string(s, search):
     return search in str(s).lower()
 
 def chckpwd(user,pwd,fakesession):
-    global temp_data,cursor,conn,user_list,df
+    global temp_data,cursor,conn,user_list,df,df2
     try : info=super_function(cursor)
     except :
         cursor,conn=create_conn(hostname,db,username,password,port)
@@ -63,9 +60,10 @@ def chckpwd(user,pwd,fakesession):
             temp_data[fakesession]["user"]=user
             try : temp_data[fakesession]["search"]=info[3][user] #there might be an exception here that is not displayed
             except : temp_data[fakesession]["search"]=[]
+            temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, info[1][user], 30, df2)
             try : 
                 temp_data[fakesession]["liked"]=info[1][user]
-                temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, info[1][user], 30)
+                
             except : 
                 temp_data[fakesession]["liked"]=[]
                 temp_data[fakesession]["recommendations"]=df["title"].head(30).to_list()
@@ -108,7 +106,7 @@ def create_login(user,pwd):
     return False
 
 def update_liked_movies(fakesession,movie):
-    global temp_data,conn,cursor
+    global temp_data,conn,cursor,df,df2
     isliked = movie in temp_data[fakesession]["liked"]
     user=temp_data[fakesession]["user"]
     if isliked :
@@ -123,7 +121,7 @@ def update_liked_movies(fakesession,movie):
         write_favourite(cursor,user,movie,isliked)
         conn.commit()
     if len(temp_data[fakesession]["liked"])!=0:
-        temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, temp_data[fakesession]["liked"], 30)
+        temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, temp_data[fakesession]["liked"], 30, df2)
     else: 
         temp_data[fakesession]["recommendations"]=df["title"].head(30).to_list()
 
