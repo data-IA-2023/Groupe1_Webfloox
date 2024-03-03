@@ -11,7 +11,6 @@ hostname=os.getenv("HOSTNAME")
 port=os.getenv("PORT")
 db=os.getenv("DB")
 api_key=os.getenv("API_KEY")
-print(db)
 
 cursor,conn=create_conn(hostname,db,username,password,port)
 
@@ -21,16 +20,24 @@ if not os.path.isfile(movies_path):
     df.to_csv(movies_path, sep='\t')
     print("downloaded tmdb information")
 else:
-    df = pd.read_csv(movies_path, sep='\t', lineterminator='\n').drop_duplicates(subset=["title"]).dropna()
+    df = pd.read_csv(movies_path, sep='\t', lineterminator='\n').drop_duplicates(subset=["title"]).dropna().reset_index(drop=True, inplace=False)
 
+"""
 
+if not os.path.isfile("resources/movies2.csv"):
+    df2=create_df(cursor)
+    df2=df2[df2["primaryTitle"].isin(df["title"])].reset_index(drop=True, inplace=True)
+    df2.to_csv("resources/movies2.csv", sep='\t')
+else:
+    df2 = pd.read_csv("resources/movies2.csv", sep='\t', lineterminator='\n').drop_duplicates().dropna()
+    df2=df2[df2["primaryTitle"].isin(df["title"])].reset_index(drop=True, inplace=True)
 
+"""
 user_list={}
 
 
 temp_data={None : {"lightmode" : False}}
 
-print(df.columns)
 
 def get_hash(algorithm, data):
    """Generate a hash for given data using specified algorithm"""
@@ -42,20 +49,26 @@ def search_string(s, search):
     return search in str(s).lower()
 
 def chckpwd(user,pwd,fakesession):
-    global temp_data,cursor,conn,user_list
+    global temp_data,cursor,conn,user_list,df
     try : info=super_function(cursor)
     except :
         cursor,conn=create_conn(hostname,db,username,password,port)
         info=super_function(cursor)
     user_list=info[0]
-    if user in user_list.keys() and not user in [temp_data[e]["user"] if "user" in temp_data[e].keys() else None for e in temp_data.keys()]:
+    if user in user_list.keys():
+        if user in [temp_data[e]["user"] if "user" in temp_data[e].keys() else None for e in temp_data.keys()]:
+            del temp_data[fakesession]
         if get_hash("sha256", pwd)==user_list[user] :
             temp_data[fakesession]={}
             temp_data[fakesession]["user"]=user
-            try : temp_data[fakesession]["search"]=info[3][user]
+            try : temp_data[fakesession]["search"]=info[3][user] #there might be an exception here that is not displayed
             except : temp_data[fakesession]["search"]=[]
-            try : temp_data[fakesession]["liked"]=info[1][user]
-            except : temp_data[fakesession]["liked"]=[]
+            try : 
+                temp_data[fakesession]["liked"]=info[1][user]
+                temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, info[1][user], 30)
+            except : 
+                temp_data[fakesession]["liked"]=[]
+                temp_data[fakesession]["recommendations"]=df["title"].head(30).to_list()
             temp_data[fakesession]["lightmode"]=info[2][user]
             return True
     return False
@@ -109,6 +122,10 @@ def update_liked_movies(fakesession,movie):
         cursor,conn=create_conn(hostname,db,username,password,port)
         write_favourite(cursor,user,movie,isliked)
         conn.commit()
+    if len(temp_data[fakesession]["liked"])!=0:
+        temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, temp_data[fakesession]["liked"], 30)
+    else: 
+        temp_data[fakesession]["recommendations"]=df["title"].head(30).to_list()
 
 
 def update_history(fakesession,movie):
@@ -174,6 +191,7 @@ async def create_cookie(response: Response):
     temp_data[uuid]["lightmode"]=False
     temp_data[uuid]["search"]=[]
     temp_data[uuid]["liked"]=[]
+    temp_data[uuid]["recommendations"]=df["title"].head(30).to_list()
     response=RedirectResponse(url="/home")
     response.set_cookie(key="fakesession", value=uuid, httponly=True)
     return response
@@ -211,7 +229,13 @@ async def index(response: Response):
 async def home(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
     global temp_data, df
     autocomplete=reset_stgs(False)[1]
-    movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
+    movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df["title"].head(30).tolist()],"poster":df["poster_url"].head(30).tolist()}
+    if fakesession!=None :
+        if "user" in temp_data[fakesession].keys() :
+            recommendations=temp_data[fakesession]["recommendations"]
+            if len(recommendations)!=0:
+                titles=[e.replace(" ", "__").replace("/","_slash_") for e in recommendations]
+                movies={"titles":titles,"poster":[df[df["title"]==e]["poster_url"].tolist()[0] for e in recommendations]}
     return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":30,"h_text":"Just for you :"},"index.html","Webfloox")
 
 @app.post("/home", response_class=HTMLResponse)
@@ -219,8 +243,18 @@ async def home(request: Request, response: Response, switchmode: Annotated[str, 
     global temp_data, df
     if switchmode == "1" and fakesession!=None : change_user_lightmode(fakesession)
     autocomplete=reset_stgs(False)[1]
-    movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df["title"].tolist()],"poster":df["poster_url"].tolist()}
+    movies={"titles":[e.replace(" ", "__").replace("/","_slash_") for e in df["title"].head(30).tolist()],"poster":df["poster_url"].head(30).tolist()}
+    if fakesession!=None :
+        if "user" in temp_data[fakesession].keys() :
+            recommendations=temp_data[fakesession]["recommendations"]
+            if len(recommendations)!=0:
+                titles=[e.replace(" ", "__").replace("/","_slash_") for e in recommendations]
+                movies={"titles":titles,"poster":[df[df["title"]==e]["poster_url"].tolist()[0] for e in recommendations]}
     return generic_render(request,fakesession,{"autocomplete":autocomplete,"movies":movies,"amout":30,"h_text":"Just for you :"},"index.html","Webfloox")
+
+
+
+
 
 @app.get("/favourites", response_class=HTMLResponse)
 async def favourites(request: Request, response: Response, fakesession: Union[str, None] = Cookie(default=None)):
