@@ -137,9 +137,10 @@ def get_cosine_sim_recommendations(df, movies, num_recom, df2):
     df2['numVotes'] = df2['numVotes'].astype(str)
     df = df.merge(df2, left_on='title', right_on='primaryTitle', how='left')
     df.fillna("",inplace=True)
+    df=df.drop_duplicates(subset=["title"])
     df.reset_index(drop=True, inplace=True)
     df['combined_features'] = df['title'] + ' ' + df['release_date'] + ' ' + df['overview'] + ' ' + df['directors'] + ' ' + df['actors']  + ' ' + df['startYear'] + ' ' + df['numVotes'] + ' ' + df['averageRating']
-    
+
     vectorizer = TfidfVectorizer(lowercase=True, analyzer='word',strip_accents='unicode',stop_words='english')
     combined_features_vec = vectorizer.fit_transform(df['combined_features'])
     movie_to_index = pd.Series(data=df.index, index=df['title']).to_dict()
