@@ -60,10 +60,9 @@ def chckpwd(user,pwd,fakesession):
             temp_data[fakesession]["user"]=user
             try : temp_data[fakesession]["search"]=info[3][user] #there might be an exception here that is not displayed
             except : temp_data[fakesession]["search"]=[]
-            temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, info[1][user], 30, df2)
             try : 
                 temp_data[fakesession]["liked"]=info[1][user]
-                
+                temp_data[fakesession]["recommendations"]=get_cosine_sim_recommendations(df, info[1][user], 30, df2)
             except : 
                 temp_data[fakesession]["liked"]=[]
                 temp_data[fakesession]["recommendations"]=df["title"].head(30).to_list()
