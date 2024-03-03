@@ -8,18 +8,8 @@
 {% include "components/navbar.html" %}
 
 <div class="container" style="margin-top: 100px;">
-  <label>test :</label>
-  <div class="row gx-3">
-    <div class="col align-self-start">
-      <textarea class="form-control" rows = "3" name = "par" placeholder="test" form="mainform"></textarea>
-    </div>
-    <div class="col align-self-center col-md-auto">
-      <a class="btn btn-primary" href={{ url_for('quiz') }}>Quiz</a>
-    </div>
-    <div class="col align-self-end">
-      <input type="text" id="tags" class="form-control"></input>
-    </div>
-  </div>
+  <h1>{{dictionary["h_text"]}}</h1>
+  {% include "components/carousel.html" %}
 </div>
 </body>
 

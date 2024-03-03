@@ -12,11 +12,18 @@
   {% if fakesession!=None %}
   <p style="color:red;">Do not share your session uuid !</p>
   <p>Current session uuid : {{fakesession}}</p>
+  <p>Current user : {{dictionary["user"]}}</p>
   {% endif %}
   <p>Address : {{dictionary["client"][8:-1]}}</p>
   <p>User agent : {{dictionary["user_agent"]}}</p>
   {% if fakesession!=None %}
   <p>Search history (last on the left) : {{dictionary["search"][::-1]}}</p>
+  {% if state == "Logged in" %}
+  Liked movies : {{dictionary["liked"]}}
+  <br>
+  <br>
+  {% endif %}
+  <label>🍪</label><a href={{ url_for('del_cookie') }} style="color: var(--bright-accent-color);"> Delete cookie</a>
   {% endif %}
 </div>
 </body>

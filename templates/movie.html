@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+
+{% include "components/head.html" %}
+
+<body class="d-flex flex-column min-vh-100">
+
+{% include "components/navbar.html" %}
+
+<div class="container" style="margin-top: 100px;">
+  <h1 class="text-center">{{dictionary["movie"]}}</h1>
+  <img src={{dictionary["poster"]}} alt="" class="image mx-auto d-block" style="height: 500px; width: auto;">
+  {% if state == "Logged in" %}
+  <p></p>
+    {% if dictionary["liked"] == False %}
+    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">💜 I like this movie </button>
+    {% else %}
+    <button class="btn-primary mx-auto d-flex" style="border: none;" onclick="document.getElementById('like').click();">🖤 I don't like this movie anymore </button>
+    {% endif %}
+    <a href={{ url_for('like_function', movie=dictionary["movie_og"]) }} style="display: none;" id="like"></a>
+  {% endif %}
+  <p></p>
+  <p class="text-center">Release date : {{dictionary["date"]}}</p>
+  <p class="text-center">{{dictionary["over"]}}</p>
+</div>
+</body>
+
+{% include "components/footer.html" %}
+
+</html>

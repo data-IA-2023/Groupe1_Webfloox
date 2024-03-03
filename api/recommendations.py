@@ -1,4 +1,4 @@
-from imports import *
+from imports2 import *
 
 with open('.env', 'r') as json_file:
     env = json.load(json_file)
@@ -12,9 +12,7 @@ conn_string = f"host={hostname} dbname={db} user={username} password={password} 
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 
-# Building the recommendation model
-model_knn = NearestNeighbors(metric='cosine', algorithm='brute')
-model_knn.fit(combined_features_tfidf)
+
 
 def db_to_vectorized(cursor):
     cursor.execute(''' select tb.tconst, tb."primaryTitle", tb."titleType", tb.genres, 
@@ -78,7 +76,7 @@ def db_to_vectorized(cursor):
     # TF-IDF Vectorization for the combined textual features
     vectorizer = TfidfVectorizer(lowercase=True, stop_words='english')
     combined_features_tfidf = vectorizer.fit_transform(df['combined_features'])
-    return combined_features_tfidf
+    return combined_features_tfidf,df
 
 
 
@@ -200,36 +198,39 @@ def rec_mov(partial_movie_title, df, cosine_sim):
     return recommended_movies[['title', 'actor']]  # Adjust columns to those actually available
 
 
+# # Building the recommendation model
+# model_knn = NearestNeighbors(metric='cosine', algorithm='brute')
+# model_knn.fit(combined_features_tfidf)
 
-movie_name1 = input("Enter the name of the movie: ")
-movie_name = suggest_movie_name_contains(movie_name1, df)
-rec_knn = get_recommendations(movie_name, df, model_knn, vectorizer)
-print(rec_knn)
-
-
-dfc=df
-dfc['startYear'] = dfc['startYear'].astype(str)
-dfc['runtimeMinutes'] = dfc['runtimeMinutes'].astype(str)
-dfc['combined_features'] = dfc['title']+ ' ' + dfc['title'] + ' ' + dfc['director'] + ' ' + dfc['actor'] + ' ' + dfc['genres'] + ' ' + dfc['writer'] + ' ' + dfc['startYear'] + ' ' + dfc['runtimeMinutes']
-couv = CountVectorizer(stop_words='english', max_features= 500)
-count_matrix = couv.fit_transform(dfc['combined_features'])
-print(count_matrix)
-
-movie_to_index = pd.Series(df.index, index=df['title']).to_dict()
+# movie_name1 = input("Enter the name of the movie: ")
+# movie_name = suggest_movie_name_contains(movie_name1, df)
+# rec_knn = get_recommendations(movie_name, df, model_knn, vectorizer)
+# print(rec_knn)
 
 
-cosine_sim = get_cosine_similarity(movie_name, count_matrix, movie_to_index)
+# dfc=df
+# dfc['startYear'] = dfc['startYear'].astype(str)
+# dfc['runtimeMinutes'] = dfc['runtimeMinutes'].astype(str)
+# dfc['combined_features'] = dfc['title']+ ' ' + dfc['title'] + ' ' + dfc['director'] + ' ' + dfc['actor'] + ' ' + dfc['genres'] + ' ' + dfc['writer'] + ' ' + dfc['startYear'] + ' ' + dfc['runtimeMinutes']
+# couv = CountVectorizer(stop_words='english', max_features= 500)
+# count_matrix = couv.fit_transform(dfc['combined_features'])
+# print(count_matrix)
 
-recommendations = get_cosine_sim_recommendations(movie_name, df, combined_features_tfidf, movie_to_index)
-# Assuming you have a user input mechanism in place
-user_input_movie = input("Enter the movie's name: ")
-recommended_movies = rec_mov(user_input_movie, df, cosine_sim).head(5)
-content_cosine = pd.DataFrame(recommendations).astype(str)
-rec_knn=rec_knn.astype(str)
-matched_df = pd.merge(content_cosine, rec_knn, on=('index', 'title'), how='inner')
-matched_df.head(5)
+# movie_to_index = pd.Series(df.index, index=df['title']).to_dict()
 
 
-couv = CountVectorizer(stop_words='english', max_features= 5000)
-count_matrix = couv.fit_transform(dfc['combined_features'])
-cosine_sim = cosine_similarity(count_matrix)
+# cosine_sim = get_cosine_similarity(movie_name, count_matrix, movie_to_index)
+
+# recommendations = get_cosine_sim_recommendations(movie_name, df, combined_features_tfidf, movie_to_index)
+# # Assuming you have a user input mechanism in place
+# user_input_movie = input("Enter the movie's name: ")
+# recommended_movies = rec_mov(user_input_movie, df, cosine_sim).head(5)
+# content_cosine = pd.DataFrame(recommendations).astype(str)
+# rec_knn=rec_knn.astype(str)
+# matched_df = pd.merge(content_cosine, rec_knn, on=('index', 'title'), how='inner')
+# matched_df.head(5)
+
+
+# couv = CountVectorizer(stop_words='english', max_features= 5000)
+# count_matrix = couv.fit_transform(dfc['combined_features'])
+# cosine_sim = cosine_similarity(count_matrix)
