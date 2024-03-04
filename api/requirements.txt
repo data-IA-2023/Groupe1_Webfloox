@@ -1,0 +1,10 @@
+fastapi
+pandas
+uvicorn
+python-multipart
+jinja2
+psycopg2
+seaborn
+fuzzywuzzy
+scikit-learn
+python-dotenv
